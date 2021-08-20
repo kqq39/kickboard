@@ -43,4 +43,34 @@
 ### 이벤트스토밍 - Aggregate
 ![image](https://user-images.githubusercontent.com/87048759/130190445-9d479f8e-33ed-45c7-8e9c-4d244d9c6bb6.png)
 
+### 이벤트스토밍 - Bounded Context
+![image](https://user-images.githubusercontent.com/87048759/130190875-acf76f26-a540-4db3-a13d-6b927867dfb7.png)
+
+### 이벤트스토밍 - Policy
+![image](https://user-images.githubusercontent.com/87048759/130191232-aec783cc-7cfa-4572-beca-5ae08e274d39.png)
+
+### 이벤트스토밍 - Context Mapping
+![image](https://user-images.githubusercontent.com/87048759/130191559-6e969f88-0f36-44e3-93ad-dc7a36ef866f.png)
+
+### 이벤트스토밍 - 완성된 모형
+![image](https://user-images.githubusercontent.com/87048759/130191648-066779ee-5be0-49f9-bba3-a29cfc18288a.png)
+
+### 이벤트스토밍 - 기능 요구사항 Coverage Check
+![image](https://user-images.githubusercontent.com/87048759/130192639-164bd7b0-1683-465c-aa08-95efe443a8da.png)
+
+1. 고객이 이용권을 구매하고, 결제를 하면 알림 메시지가 전송되고 이용권 상태가 변경된다.
+2. 고객이 킥보드는 대여/반납하면 알림 메시지가 전송되고 이용권 상태가 변경된다.
+3. 관리자가 킥보드를 등록/취소 한다.
+
+### 이벤트스토밍 - 비기능 요구사항 Coverage Check
+![image](https://user-images.githubusercontent.com/87048759/130193450-ba5f2ebd-80a2-4142-ac3c-52bd551f715e.png)
+
+1. 고객은 이용권 결제가 완료되어야 킥보드 대여가 가능하다.
+2. 킥보드 대여/반납은 24시간 가능하다. (서비스 분리)
+3. 결제 시스템이 과중되면 결제를 받지 않고 결제를 잠시 후에 하도록 한다. (서비스 분리)
+4. 고객이 구매한 이용권의 잔여를 확인할 수 있다 (view)
+5. 킥보드 대여 상태가 변경되면 고객에게 알림 메시지를 전송한다 (알림)
+
+### 헥사고날 아키텍처
+![image](https://user-images.githubusercontent.com/87048759/130193521-9431f23a-dbee-4b24-8794-011880a99773.png)
 
