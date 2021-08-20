@@ -37,3 +37,6 @@
 ### 이벤트스토밍 - 비적격 Event 제거
 ![image](https://user-images.githubusercontent.com/87048759/130189918-34fbdd66-6b15-4b18-8904-042ebc31d43f.png)
 
+### 이벤트스토밍 - Actor, Command
+![image](https://user-images.githubusercontent.com/87048759/130190257-71b5f09c-628c-4542-a741-8f1f11549e8b.png)
+
