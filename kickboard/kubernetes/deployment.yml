@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: kickboard
-          image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/kickboard
+          image: username/kickboard:latest
           ports:
             - containerPort: 8080
           readinessProbe:
