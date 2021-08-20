@@ -40,3 +40,7 @@
 ### 이벤트스토밍 - Actor, Command
 ![image](https://user-images.githubusercontent.com/87048759/130190257-71b5f09c-628c-4542-a741-8f1f11549e8b.png)
 
+### 이벤트스토밍 - Aggregate
+![image](https://user-images.githubusercontent.com/87048759/130190445-9d479f8e-33ed-45c7-8e9c-4d244d9c6bb6.png)
+
+
