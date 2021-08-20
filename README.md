@@ -53,6 +53,8 @@
 ![image](https://user-images.githubusercontent.com/87048759/130191559-6e969f88-0f36-44e3-93ad-dc7a36ef866f.png)
 
 ### 이벤트스토밍 - 완성된 모형
+http://www.msaez.io/#/storming/bc8D3KeQEkRS3CyNNBP02KrrNrE2/d36c03850878e3b6ebfce15eb6bf9ed8
+
 ![image](https://user-images.githubusercontent.com/87048759/130191648-066779ee-5be0-49f9-bba3-a29cfc18288a.png)
 
 ### 이벤트스토밍 - 기능 요구사항 Coverage Check
@@ -73,4 +75,9 @@
 
 ### 헥사고날 아키텍처
 ![image](https://user-images.githubusercontent.com/87048759/130193521-9431f23a-dbee-4b24-8794-011880a99773.png)
+*****
+
+## 구현
+
+## 운영
 
