@@ -31,4 +31,9 @@
 ### To-Be 조직구조 – Vertical
 ![image](https://user-images.githubusercontent.com/87048759/130189510-a583a7a1-63b6-4ce5-93a1-3e12d2677814.png)
 
+### 이벤트스토밍 - Event
+![image](https://user-images.githubusercontent.com/87048759/130189887-9a17b234-0bca-485d-9e0d-8dc193cffeec.png)
+
+### 이벤트스토밍 - 비적격 Event 제거
+![image](https://user-images.githubusercontent.com/87048759/130189918-34fbdd66-6b15-4b18-8904-042ebc31d43f.png)
 
