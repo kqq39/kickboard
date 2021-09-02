@@ -466,18 +466,65 @@ Transfer-Encoding: chunked
 
 1. replica를 동적으로 늘려 주도록 HPA를 설정한다. CPU 사용량이 20%를 넘으면 replica를 10개까지 늘려준다.
 
+```
+root@labs--1860204849:/home/project/kickboard/ticket# kubectl autoscale deployment ticket --cpu-percent=20 --min=1 --max=10
+horizontalpodautoscaler.autoscaling/ticket autoscaled
+root@labs--1860204849:/home/project/kickboard/ticket# kubectl autoscale deployment payment --cpu-percent=20 --min=1 --max=10
+horizontalpodautoscaler.autoscaling/payment autoscaled
+root@labs--1860204849:/home/project/kickboard/ticket# kubectl get all
+NAME                             READY   STATUS             RESTARTS   AGE
+pod/gateway-7cf6fcfb7b-42gfx     1/1     Running            0          3h33m
+pod/kickboard-66fd9859b8-pj99f   1/1     Running            0          99m
+pod/my-kafka-0                   1/1     Running            1          10h
+pod/my-kafka-zookeeper-0         1/1     Running            0          10h
+pod/payment-6b45b46848-ztcrk     1/1     Running            0          100m
+pod/siege                        1/1     Running            0          9h
+pod/ticket-c84f858f4-rj2jg       1/1     Running            0          102m
+pod/viewpage-66bc678b84-fn8gr    1/1     Running            0          3h36m
 
+.......
 
-![image](https://user-images.githubusercontent.com/87048759/131852147-25d73d02-8005-4be9-a442-9f2f4a736e09.png)
-![image](https://user-images.githubusercontent.com/87048759/131852279-7e3fb373-8805-4d91-9dd0-9efd24cb2668.png)
+NAME                                          REFERENCE            TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/payment   Deployment/payment   <unknown>/20%   1         10        0          11s
+horizontalpodautoscaler.autoscaling/ticket    Deployment/ticket    <unknown>/20%   1         10        1          70s
+```
 
 2. 부하 테스트 진행
 
-![image](https://user-images.githubusercontent.com/87048759/131852975-9d041d52-1dde-4027-92a1-7a88a2816cb2.png)
+```
+HTTP/1.1 200     0.03 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.03 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.04 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.03 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.08 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.02 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.02 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.01 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.04 secs:     349 bytes ==> GET  /tickets
+HTTP/1.1 200     0.04 secs:     349 bytes ==> GET  /tickets
+
+Lifting the server siege...
+Transactions:                  11000 hits
+Availability:                 100.00 %
+Elapsed time:                  29.51 secs
+Data transferred:               3.66 MB
+Response time:                  0.08 secs
+Transaction rate:             372.76 trans/sec
+Throughput:                     0.12 MB/sec
+Concurrency:                   29.80
+Successful transactions:       11000
+Failed transactions:               0
+Longest transaction:            0.57
+Shortest transaction:           0.00
+```
 
 3. HPA 삭제
-![image](https://user-images.githubusercontent.com/87048759/131856177-2c2d3bd5-26ed-4e90-b6fd-e06139811655.png)
 
+```
+root@labs--1860204849:/home/project/kickboard/ticket# kubectl delete hpa --all
+horizontalpodautoscaler.autoscaling "payment" deleted
+horizontalpodautoscaler.autoscaling "ticket" deleted
+```
 
 ## 운영
 
