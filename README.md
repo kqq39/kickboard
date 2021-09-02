@@ -78,6 +78,115 @@ http://www.msaez.io/#/storming/bc8D3KeQEkRS3CyNNBP02KrrNrE2/d36c03850878e3b6ebfc
 *****
 
 ## 구현
+분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (서비스 포트는 8081, 8082, 8083, 8084, 8085 이다)
+
+```
+cd ticket
+mvn spring-boot:run
+
+cd payment
+mvn spring-boot:run
+
+cd kickboard
+mvn spring-boot:run
+
+cd message
+mvn spring-boot:run
+
+cd viewpage
+mvn spring-boot:run
+
+```
+****
+
+### DDD의 적용
+
+1. 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다. (예시는 kick 마이크로 서비스 )
+
+#### kick.java
+
+```
+package kickboard;
+
+import javax.persistence.*;
+import org.springframework.beans.BeanUtils;
+import java.util.List;
+import java.util.Date;
+
+@Entity
+@Table(name="Kick_table")
+public class Kick {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long kickId;
+    private Long kickStatus;
+    private Long ticketId;
+    private Long usingTime;
+
+    public Long getKickId() {
+        return kickId;
+    }
+
+    public void setKickId(Long kickId) {
+        this.kickId = kickId;
+    }
+    public Long getKickStatus() {
+        return kickStatus;
+    }
+
+    public void setKickStatus(Long kickStatus) {
+        this.kickStatus = kickStatus;
+    }
+    public Long getTicketId() {
+        return ticketId;
+    }
+
+    public void setTicketId(Long ticketId) {
+        this.ticketId = ticketId;
+    }
+    public Long getUsingTime() {
+        return usingTime;
+    }
+
+    public void setUsingTime(Long usingTime) {
+        this.usingTime = usingTime;
+    }
+ }
+
+```
+
+2. Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
+
+#### kickRepository.java
+
+```
+package kickboard;
+
+import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.rest.core.annotation.RepositoryRestResource;
+
+@RepositoryRestResource(collectionResourceRel="kicks", path="kicks")
+public interface KickRepository extends PagingAndSortingRepository<Kick, Long>{
+}
+```
+
+3. 적용 후 REST API 의 테스트
+
+```
+1. 티켓 구매
+http http://localhost:8081/tickets ticketType=1 ticketStatus="ReadyForPay"
+
+2. 킥보드 등록
+http http://localhost:8083/kick kickStatus="Registered"
+
+3. 킥보드 렌탈
+http PATCH http://localhost:8083/kick/1 ticketId=1 usingTime=60
+
+4. 티켓 상태 확인 (ticketStatus가 ticketUsed로 변경되었는지 확인)
+http GET http://localhost:8081/tickets/1
+
+```
 
 ## 운영
 
