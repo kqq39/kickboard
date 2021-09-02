@@ -175,7 +175,7 @@ public interface KickRepository extends PagingAndSortingRepository<Kick, Long>{
 
 ```
 1. 이용권 구매
-http ticket:8080/tickets ticketType="1" ticketStatus="Ready"
+http POST ticket:8080/tickets ticketId="1" ticketStatus="Ready" ticktype="1"
 
 2. 킥보드 등록
 http kickboard:8080/kicks kickId="1" kickStatus="Registered"
@@ -257,14 +257,28 @@ Transfer-Encoding: chunked
 
 1. PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 (티켓 생성 시 구매, 자전거 렌탈시 티켓상태 변경, 환불 시 티켓 상태 변경 등)
 
+### 서킷브레이킹
+
+1. Spring FeignClient + Hystrix 옵션을 사용하여 구현
+
+2. ticket -> payment가 Request/Response 로 연동하여 구현이 되어있고, 요청이 과도할 경우 CB를 통하여 장애격리
+
+3. Hystrix 설정 : thread에서 처리 시간이 600 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+
+
 ### 오토스케일아웃
 
 1. replica를 동적으로 늘려 주도록 HPA를 설정한다. CPU 사용량이 20%를 넘으면 replica를 10개까지 늘려준다.
+
 ![image](https://user-images.githubusercontent.com/87048759/131852147-25d73d02-8005-4be9-a442-9f2f4a736e09.png)
 ![image](https://user-images.githubusercontent.com/87048759/131852279-7e3fb373-8805-4d91-9dd0-9efd24cb2668.png)
 
 2. 부하 테스트 진행
+
 ![image](https://user-images.githubusercontent.com/87048759/131852975-9d041d52-1dde-4027-92a1-7a88a2816cb2.png)
+
+3. HPA 삭제
+![image](https://user-images.githubusercontent.com/87048759/131856177-2c2d3bd5-26ed-4e90-b6fd-e06139811655.png)
 
 
 ## 운영
