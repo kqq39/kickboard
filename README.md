@@ -250,15 +250,21 @@ Transfer-Encoding: chunked
     "timestamp": "2021-09-02T11:36:44.953+0000"
 }
 
-![image](https://user-images.githubusercontent.com/87048759/131839623-11d26971-7342-49cf-adf6-271314fe0e3b.png)
-
-```    
-
+```
 
 
 ### Correlation
 
 1. PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 (티켓 생성 시 구매, 자전거 렌탈시 티켓상태 변경, 환불 시 티켓 상태 변경 등)
+
+### 오토스케일아웃
+
+1. replica를 동적으로 늘려 주도록 HPA를 설정한다. CPU 사용량이 20%를 넘으면 replica를 10개까지 늘려준다.
+![image](https://user-images.githubusercontent.com/87048759/131852147-25d73d02-8005-4be9-a442-9f2f4a736e09.png)
+![image](https://user-images.githubusercontent.com/87048759/131852279-7e3fb373-8805-4d91-9dd0-9efd24cb2668.png)
+
+2. 부하 테스트 진행
+![image](https://user-images.githubusercontent.com/87048759/131852975-9d041d52-1dde-4027-92a1-7a88a2816cb2.png)
 
 
 ## 운영
