@@ -99,97 +99,7 @@ mvn spring-boot:run
 ```
 ****
 
-### DDD의 적용
-
-1. 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다. (예시는 kick 마이크로 서비스 )
-
-#### kick.java
-
-```
-package kickboard;
-
-import javax.persistence.*;
-import org.springframework.beans.BeanUtils;
-import java.util.List;
-import java.util.Date;
-
-@Entity
-@Table(name="Kick_table")
-public class Kick {
-
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long kickId;
-    private Long kickStatus;
-    private Long ticketId;
-    private Long usingTime;
-
-    public Long getKickId() {
-        return kickId;
-    }
-
-    public void setKickId(Long kickId) {
-        this.kickId = kickId;
-    }
-    public Long getKickStatus() {
-        return kickStatus;
-    }
-
-    public void setKickStatus(Long kickStatus) {
-        this.kickStatus = kickStatus;
-    }
-    public Long getTicketId() {
-        return ticketId;
-    }
-
-    public void setTicketId(Long ticketId) {
-        this.ticketId = ticketId;
-    }
-    public Long getUsingTime() {
-        return usingTime;
-    }
-
-    public void setUsingTime(Long usingTime) {
-        this.usingTime = usingTime;
-    }
- }
-
-```
-
-2. Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
-
-#### kickRepository.java
-
-```
-package kickboard;
-
-import org.springframework.data.repository.PagingAndSortingRepository;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
-
-@RepositoryRestResource(collectionResourceRel="kicks", path="kicks")
-public interface KickRepository extends PagingAndSortingRepository<Kick, Long>{
-}
-```
-
-3. 적용 후 REST API 의 테스트
-
-```
-1. 이용권 구매
-http POST ticket:8080/tickets ticketId="1" ticketStatus="Ready" ticktype="1"
-
-2. 킥보드 등록
-http kickboard:8080/kicks kickId="1" kickStatus="Registered"
-
-3. 킥보드 대여
-http PATCH kickboard:8080/kicks/1 ticketId="1" usingTime="60"
-
-4. 이용권 상태 변경 확인 (ticketStatus가 ticketUsed로 변경되었는지 확인)
-http GET ticket:8080/tickets/1
-
-```
-****
-
-### 동기식 호출
+### 동기식 호출과 Fallback 처리
 
 분석단계에서의 조건 중 하나로 이용권 구매 (ticket) --> 이용권 결제 (payment) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로
 처리한다. 호출 프로토콜은 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient를 이용하여 호출한다.
@@ -207,7 +117,7 @@ public interface PaymentService {
 }
 ```
 
-2. 요청을 받은 직후(@PostPersist) 인증을 요청하도록 처리
+2. 이용권을 받은 직후(@PostPersist) 결제 요청하도록 처리
 
 #### ticket.java
 
@@ -232,10 +142,11 @@ public interface PaymentService {
     }
 ```    
 
-3. 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인 Payment 서비스 다운 후 티켓 구매
+3. 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인
+   (Payment 서비스 다운 후 티켓 구매)
 
 ```    
-root@siege:/#  http ticket:8080/tickets ticket="1" ticketStatus="Ready"
+root@siege:/#  http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
 HTTP/1.1 500 
 Connection: close
 Content-Type: application/json;charset=UTF-8
@@ -252,6 +163,84 @@ Transfer-Encoding: chunked
 
 ```
 
+### DDD의 적용
+
+1. 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다. (예시는 ticket 마이크로 서비스 )
+
+#### Ticket.java
+
+```
+@Entity
+@Table(name="Ticket_table")
+public class Ticket {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long ticketId;
+    private String ticketStatus;
+    private String ticketType;
+    private String buyerPhoneNum;
+
+    public Long getTicketId() {
+        return ticketId;
+    }
+
+    public void setTicketId(Long ticketId) {
+        this.ticketId = ticketId;
+    }
+    public String getTicketStatus() {
+        return ticketStatus;
+    }
+
+    public void setTicketStatus(String ticketStatus) {
+        this.ticketStatus = ticketStatus;
+    }
+    public String getTicketType() {
+        return ticketType;
+    }
+
+    public void setTicketType(String ticketType) {
+        this.ticketType = ticketType;
+    }
+    public String getBuyerPhoneNum() {
+        return buyerPhoneNum;
+    }
+
+    public void setBuyerPhoneNum(String buyerPhoneNum) {
+        this.buyerPhoneNum = buyerPhoneNum;
+    }
+}
+
+```
+
+2. Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
+
+#### TicketRepository.java
+
+```
+@RepositoryRestResource(collectionResourceRel="tickets", path="tickets")
+public interface TicketRepository extends PagingAndSortingRepository<Ticket, Long>{
+}
+
+```
+
+3. 적용 후 REST API 의 테스트
+
+```
+1. 이용권 구매
+http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
+
+2. 킥보드 등록
+http kickboard:8080/kicks kickId="1" kickStatus="Registered"
+
+3. 킥보드 대여
+http PATCH kickboard:8080/kicks/1 ticketId="1" usingTime="60"
+
+4. 이용권 상태 변경 확인 (ticketStatus가 ticketUsed로 변경되었는지 확인)
+http GET ticket:8080/tickets/1
+
+```
+****
 
 ### Correlation
 
@@ -306,7 +295,7 @@ Transfer-Encoding: chunked
 }
 ```
 
-- 킥보드 대여 (킥보드 상태 Rented로 변경)
+- 킥보드 대여 (1번 킥보드 상태 Rented로 변경)
 
 ```
 root@siege:/# http GET kickboard:8080/kicks/1
@@ -330,7 +319,7 @@ Transfer-Encoding: chunked
 }
 ```
 
-- 킥보드 대여 (이용권 상태 Used로 변경)
+- 킥보드 대여 (1번 이용권 상태 Used로 변경)
 
 ```
 root@siege:/# http GET ticket:8080/tickets/1
@@ -354,6 +343,116 @@ Transfer-Encoding: chunked
 }
 ```
 
+### 비동기식 호출
+
+1. 킥보드를 대여한 후 이용권 상태가 변경되고, 킥보드를 대여했다는 메시지가 전송되는 시스템과의 통신은 비동기식으로 처리한다.
+
+```
+    @PostUpdate
+    public void onPostUpdate(){
+
+        if( this.getKickStatus().equals("Registered") || this.getKickStatus().equals("Returned") ) {
+            boolean rslt = KickboardApplication.applicationContext.getBean(kickboard.external.TicketService.class)
+                .chkTicketStatus(this.getTicketId(), this.getUsingTime());
+
+            if (rslt) {
+                KickRented bicycleRented = new KickRented();
+                BeanUtils.copyProperties(this, kickRented);
+                kickRented.publishAfterCommit();
+            }
+        }
+```
+
+2. Message 서비스는 Ticket과 Kickboard 서비스와 분리되어 이벤트 수신에 따라 처리하기 때문에 Message 서비스가 다운되어도 
+   이용권 구매와 킥보드 대여는 문제 없이 사용할 수 있다.
+
+- message 서비스 미동작
+```
+root@labs--1860204849:/home/project/kickboard/kickboard# kubectl get pods
+NAME                         READY   STATUS             RESTARTS   AGE
+gateway-7cf6fcfb7b-42gfx     1/1     Running            0          177m
+kickboard-66fd9859b8-pj99f   1/1     Running            0          63m
+message-bbf6bcd66-jv4vh      0/1     CrashLoopBackOff   82         7h12m
+my-kafka-0                   1/1     Running            1          9h
+my-kafka-zookeeper-0         1/1     Running            0          9h
+payment-6b45b46848-ztcrk     1/1     Running            0          65m
+siege                        1/1     Running            0          9h
+ticket-c84f858f4-rj2jg       1/1     Running            0          66m
+viewpage-66bc678b84-fn8gr    1/1     Running            0          3h
+```
+
+- 이용권 구매
+
+```
+root@siege:/# http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 15:25:23 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "self": {
+            "href": "http://ticket:8080/tickets/2"
+        },
+        "ticket": {
+            "href": "http://ticket:8080/tickets/2"
+        }
+    },
+    "buyerPhoneNum": null,
+    "ticketStatus": "ticketAvailable",
+    "ticketType": "1"
+}
+```
+
+- 킥보드 대여
+
+```
+root@siege:/# http PATCH kickboard:8080/kicks/2 ticketId="2" usingTime="60"
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 15:29:32 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "kick": {
+            "href": "http://kickboard:8080/kicks/2"
+        },
+        "self": {
+            "href": "http://kickboard:8080/kicks/2"
+        }
+    },
+    "kickStatus": "Rented",
+    "ticketId": 2,
+    "usingTime": 60
+}
+```
+
+- 킥보드 상태 확인
+
+```
+root@siege:/# http GET kickboard:8080/kicks/2
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 15:31:38 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "kick": {
+            "href": "http://kickboard:8080/kicks/2"
+        },
+        "self": {
+            "href": "http://kickboard:8080/kicks/2"
+        }
+    },
+    "kickStatus": "Rented",
+    "ticketId": 2,
+    "usingTime": 60
+}
+```
+
 ### 서킷브레이킹
 
 1. Spring FeignClient + Hystrix 옵션을 사용하여 구현
@@ -366,6 +465,8 @@ Transfer-Encoding: chunked
 ### 오토스케일아웃
 
 1. replica를 동적으로 늘려 주도록 HPA를 설정한다. CPU 사용량이 20%를 넘으면 replica를 10개까지 늘려준다.
+
+
 
 ![image](https://user-images.githubusercontent.com/87048759/131852147-25d73d02-8005-4be9-a442-9f2f4a736e09.png)
 ![image](https://user-images.githubusercontent.com/87048759/131852279-7e3fb373-8805-4d91-9dd0-9efd24cb2668.png)
