@@ -461,6 +461,48 @@ Transfer-Encoding: chunked
 
 3. Hystrix 설정 : thread에서 처리 시간이 600 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
 
+#### application.yml
+```
+server:
+  port: 8080
+
+---
+
+hystrix:
+  command:
+    default:
+      execution.isolation.thread.timeoutInMilliseconds: 600
+
+```
+
+4. 피호출 서비스 부하처리
+
+#### Payment.java
+```
+    @PostPersist
+    public void onPostPersist(){
+        // boolean rslt =  PaymentApplication.applicationContext.getBean(rentbicycle.external.PaymentService.class)
+        // .modifyStock(this.getPaymentId(), this.getTicketAmt());
+
+        PaymentApproved paymentApproved = new PaymentApproved();
+        paymentApproved.setPaymentId(this.getPaymentId());
+        paymentApproved.setPaymentId(this.getTicketId());
+        paymentApproved.setTicketAmt(this.getTicketAmt());
+        paymentApproved.setPaymentStatus("paymentApproved");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String json = null;
+
+        try {
+            json = objectMapper.writeValueAsString(paymentApproved);
+            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON format exception", e);
+        }
+```
+
+4. 피호출 서비스 부하처리
+root@labs--1860204849:/home/project/kickboard/ticket# siege -v -c100 -t30S -r10 --content-type "application/json" 'http://ticket:8080/tickets POST {"ticketType":1, "ticketStatus":"ReadyToPay"}'
 
 ### 오토스케일아웃
 
