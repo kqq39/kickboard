@@ -255,7 +255,104 @@ Transfer-Encoding: chunked
 
 ### Correlation
 
-1. PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 (티켓 생성 시 구매, 자전거 렌탈시 티켓상태 변경, 환불 시 티켓 상태 변경 등)
+PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 
+(이용권 구매와 킥보드 대여시 이용권 상태, 킥보드 상태 변경)
+
+- 이용권 구매
+
+```
+root@siege:/# http GET ticket:8080/tickets/1
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 14:45:54 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "self": {
+            "href": "http://ticket:8080/tickets/1"
+        },
+        "ticket": {
+            "href": "http://ticket:8080/tickets/1"
+        }
+    },
+    "buyerPhoneNum": null,
+    "ticketStatus": "ticketAvailable",
+    "ticketType": "1"
+}
+```
+
+- 킥보드 등록
+
+```
+root@siege:/# http GET kickboard:8080/kicks/1
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 14:48:39 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "kick": {
+            "href": "http://kickboard:8080/kicks/1"
+        },
+        "self": {
+            "href": "http://kickboard:8080/kicks/1"
+        }
+    },
+    "kickStatus": "Registered",
+    "ticketId": null,
+    "usingTime": null
+}
+```
+
+- 킥보드 대여 (킥보드 상태 Rented로 변경)
+
+```
+root@siege:/# http GET kickboard:8080/kicks/1
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 14:51:32 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "kick": {
+            "href": "http://kickboard:8080/kicks/1"
+        },
+        "self": {
+            "href": "http://kickboard:8080/kicks/1"
+        }
+    },
+    "kickStatus": "Rented",
+    "ticketId": 1,
+    "usingTime": 60
+}
+```
+
+- 킥보드 대여 (이용권 상태 Used로 변경)
+
+```
+root@siege:/# http GET ticket:8080/tickets/1
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Thu, 02 Sep 2021 14:52:32 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "self": {
+            "href": "http://ticket:8080/tickets/1"
+        },
+        "ticket": {
+            "href": "http://ticket:8080/tickets/1"
+        }
+    },
+    "buyerPhoneNum": null,
+    "ticketStatus": "ticketUsed",
+    "ticketType": "1"
+}
+```
 
 ### 서킷브레이킹
 
