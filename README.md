@@ -174,19 +174,92 @@ public interface KickRepository extends PagingAndSortingRepository<Kick, Long>{
 3. 적용 후 REST API 의 테스트
 
 ```
-1. 티켓 구매
-http http://localhost:8081/tickets ticketType=1 ticketStatus="ReadyForPay"
+1. 이용권 구매
+http ticket:8080/tickets ticketType="1" ticketStatus="Ready"
 
 2. 킥보드 등록
-http http://localhost:8083/kick kickStatus="Registered"
+http kickboard:8080/kicks kickId="1" kickStatus="Registered"
 
-3. 킥보드 렌탈
-http PATCH http://localhost:8083/kick/1 ticketId=1 usingTime=60
+3. 킥보드 대여
+http PATCH kickboard:8080/kicks/1 ticketId="1" usingTime="60"
 
-4. 티켓 상태 확인 (ticketStatus가 ticketUsed로 변경되었는지 확인)
-http GET http://localhost:8081/tickets/1
+4. 이용권 상태 변경 확인 (ticketStatus가 ticketUsed로 변경되었는지 확인)
+http GET ticket:8080/tickets/1
 
 ```
+****
+
+### 동기식 호출
+
+분석단계에서의 조건 중 하나로 이용권 구매 (ticket) --> 이용권 결제 (payment) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로
+처리한다. 호출 프로토콜은 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient를 이용하여 호출한다.
+
+1. 결제서비스를 호출하기 위해 FeignClient를 이용해 Service 대행 인터페이스 구현
+
+#### PaymentService.java
+
+```
+@FeignClient(name="payment", url="http://payment:8080")
+public interface PaymentService {
+    @RequestMapping(method= RequestMethod.GET, path="/payTicket")
+    public boolean payTicket(@RequestParam("ticketId") Long ticketId, 
+                             @RequestParam("ticketAmt") Long ticketAmt);
+}
+```
+
+2. 요청을 받은 직후(@PostPersist) 인증을 요청하도록 처리
+
+#### ticket.java
+
+```
+    @PostPersist
+    public void onPostPersist(){
+        Long ticketAmount = Long.decode(this.getTicketType() == "1"?"1000":"2000");
+
+        boolean result = TicketApplication.applicationContext.getBean(kickboard.external.PaymentService.class)
+            .payTicket(this.getTicketId(), ticketAmount);
+        
+        if(result) {
+            TicketPurchased ticketPurchased = new TicketPurchased();
+            ticketPurchased.setTicketId(this.getTicketId());
+            ticketPurchased.setTicketStatus("ticketPurchased");
+            ticketPurchased.setTicketType(this.getTicketType());
+            ticketPurchased.setBuyerPhoneNum(this.getBuyerPhoneNum());
+
+            BeanUtils.copyProperties(this, ticketPurchased);
+            ticketPurchased.publishAfterCommit();
+        }
+    }
+```    
+
+3. 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인 Payment 서비스 다운 후 티켓 구매
+
+```    
+root@siege:/#  http ticket:8080/tickets ticket="1" ticketStatus="Ready"
+HTTP/1.1 500 
+Connection: close
+Content-Type: application/json;charset=UTF-8
+Date: Thu, 02 Sep 2021 11:36:43 GMT
+Transfer-Encoding: chunked
+
+{
+    "error": "Internal Server Error",
+    "message": "Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction",
+    "path": "/tickets",
+    "status": 500,
+    "timestamp": "2021-09-02T11:36:44.953+0000"
+}
+
+![image](https://user-images.githubusercontent.com/87048759/131839623-11d26971-7342-49cf-adf6-271314fe0e3b.png)
+
+```    
+
+
+
+### Correlation
+
+1. PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 (티켓 생성 시 구매, 자전거 렌탈시 티켓상태 변경, 환불 시 티켓 상태 변경 등)
+
 
 ## 운영
 
