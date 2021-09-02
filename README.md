@@ -230,8 +230,12 @@ public interface TicketRepository extends PagingAndSortingRepository<Ticket, Lon
 1. 이용권 구매
 http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
 
+![image](https://user-images.githubusercontent.com/87048759/131925449-926273d9-b6be-4ba2-b09b-d5271c37d264.png)
+
 2. 킥보드 등록
 http kickboard:8080/kicks kickId="1" kickStatus="Registered"
+
+![image](https://user-images.githubusercontent.com/87048759/131925506-6630b6af-8aa4-4165-9e0d-30ae2e3f3ed3.png)
 
 3. 킥보드 대여
 http PATCH kickboard:8080/kicks/1 ticketId="1" usingTime="60"
@@ -248,52 +252,10 @@ PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기
 (이용권 구매와 킥보드 대여시 이용권 상태, 킥보드 상태 변경)
 
 - 이용권 구매
-
-```
-root@siege:/# http GET ticket:8080/tickets/1
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 14:45:54 GMT
-Transfer-Encoding: chunked
-
-{
-    "_links": {
-        "self": {
-            "href": "http://ticket:8080/tickets/1"
-        },
-        "ticket": {
-            "href": "http://ticket:8080/tickets/1"
-        }
-    },
-    "buyerPhoneNum": null,
-    "ticketStatus": "ticketAvailable",
-    "ticketType": "1"
-}
-```
+![image](https://user-images.githubusercontent.com/87048759/131925744-9e62d805-5c6c-447f-a531-499e8e7075ed.png)
 
 - 킥보드 등록
-
-```
-root@siege:/# http GET kickboard:8080/kicks/1
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 14:48:39 GMT
-Transfer-Encoding: chunked
-
-{
-    "_links": {
-        "kick": {
-            "href": "http://kickboard:8080/kicks/1"
-        },
-        "self": {
-            "href": "http://kickboard:8080/kicks/1"
-        }
-    },
-    "kickStatus": "Registered",
-    "ticketId": null,
-    "usingTime": null
-}
-```
+![image](https://user-images.githubusercontent.com/87048759/131925808-d6e12cb0-a7ee-41e7-89b6-2c27f5e15216.png)
 
 - 킥보드 대여 (1번 킥보드 상태 Rented로 변경)
 
