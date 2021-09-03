@@ -267,7 +267,7 @@ Transfer-Encoding: chunked
 ```
 
 2. Message 서비스는 Ticket과 Kickboard 서비스와 분리되어 이벤트 수신에 따라 처리하기 때문에 Message 서비스가 다운되어도 
-   이용권 구매와 킥보드 대여는 문제 없이 사용할 수 있다.
+   이용권 구매와 킥보드 서비스는 문제 없이 사용할 수 있다.
 
 - message 서비스 미동작
 
@@ -277,7 +277,6 @@ Transfer-Encoding: chunked
 
 ![image](https://user-images.githubusercontent.com/87048759/131926633-43e17a98-afed-4e73-af89-291cfc04583b.png)
 
-- 킥보드 대여
 
 - 이용권 상태 확인
 
@@ -294,26 +293,22 @@ Transfer-Encoding: chunked
 ### Correlation
 
 PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 
-(이용권 구매와 킥보드 대여시 이용권 상태, 킥보드 상태 변경)
+(이용권 구매 --> 결제 승인, 이용권 환불 --> 이용권 상태 변경)
 
 - 이용권 구매
  
-![image](https://user-images.githubusercontent.com/87048759/131925744-9e62d805-5c6c-447f-a531-499e8e7075ed.png)
+![image](https://user-images.githubusercontent.com/87048759/131935021-54196170-be94-4ca0-ae73-c9ccdb45d133.png)
 
-- 킥보드 등록
- 
-![image](https://user-images.githubusercontent.com/87048759/131925808-d6e12cb0-a7ee-41e7-89b6-2c27f5e15216.png)
+- 결제 승인
 
-- 킥보드 대여 (1번 킥보드 상태 Rented로 변경)
+![image](https://user-images.githubusercontent.com/87048759/131935177-5976f438-f743-433e-88c4-523b45f10ebb.png)
 
 
+- 이용권 환불
+![image](https://user-images.githubusercontent.com/87048759/131935459-39e09ae0-9772-42ca-858c-5542d17390f9.png)
 
-- 킥보드 대여 (1번 이용권 상태 Used로 변경)
-
-- 티켓 환불
-
-![image](https://user-images.githubusercontent.com/87048759/131926448-a2b289f6-987b-4147-a62e-94441de99e05.png)
-
+- 이용권 상태 변경
+![image](https://user-images.githubusercontent.com/87048759/131935874-e1f6e32c-7c0e-479c-a089-84bde542bb5f.png)
 
 ### Deploy
 
@@ -441,7 +436,7 @@ root@labs--1860204849:/home/project/kickboard/ticket# siege -v -c50 -t30S -r10 -
 
 ![image](https://user-images.githubusercontent.com/87048759/131928045-9e90e55f-aa3d-4e75-a839-40a1afe32c62.png)
 
-2. 부하 테스트 진행
+3. 부하 테스트 진행
 
 ```
 siege -v -c100 -t30S -r10 --content-type "application/json" 'http://ticket:8080/tickets POST {"ticketType":1, "ticketStatus":"ReadyToPay"}'
