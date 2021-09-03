@@ -287,9 +287,6 @@ Transfer-Encoding: chunked
 ![image](https://user-images.githubusercontent.com/87048759/131926693-042fb2b5-adee-450e-b040-80c4d1c6e863.png)
 
 
-### CQRS
-
-
 ### Correlation
 
 PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 
@@ -445,7 +442,6 @@ siege -v -c100 -t30S -r10 --content-type "application/json" 'http://ticket:8080/
 ![image](https://user-images.githubusercontent.com/87048759/131928656-da17fab8-5487-41f3-86fd-64288482fe52.png)
 
 
-
 3. HPA 삭제
 
 ```
@@ -473,4 +469,30 @@ horizontalpodautoscaler.autoscaling "ticket" deleted
 4. 이용권 구매를 다시 진행한다.
 
 ![image](https://user-images.githubusercontent.com/87048759/131931093-96640cde-fca4-4182-8055-72bcd90c0ed3.png)
+
+
+## Persistence Volume
+
+1. Persistence Volume 을 생성한다.
+
+```
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: aws-efs
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+```
+![image](https://user-images.githubusercontent.com/87048759/131938267-3bd4bcdc-0dc6-4763-adaa-17b6d88561c1.png)
+
+2. Persistence Volume Claim 을 생성한다.
+
 
