@@ -99,70 +99,6 @@ mvn spring-boot:run
 ```
 ****
 
-### 동기식 호출과 Fallback 처리
-
-분석단계에서의 조건 중 하나로 이용권 구매 (ticket) --> 이용권 결제 (payment) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로
-처리한다. 호출 프로토콜은 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient를 이용하여 호출한다.
-
-1. 결제서비스를 호출하기 위해 FeignClient를 이용해 Service 대행 인터페이스 구현
-
-#### PaymentService.java
-
-```
-@FeignClient(name="payment", url="http://payment:8080")
-public interface PaymentService {
-    @RequestMapping(method= RequestMethod.GET, path="/payTicket")
-    public boolean payTicket(@RequestParam("ticketId") Long ticketId, 
-                             @RequestParam("ticketAmt") Long ticketAmt);
-}
-```
-
-2. 이용권을 받은 직후(@PostPersist) 결제 요청하도록 처리
-
-#### ticket.java
-
-```
-    @PostPersist
-    public void onPostPersist(){
-        Long ticketAmount = Long.decode(this.getTicketType() == "1"?"1000":"2000");
-
-        boolean result = TicketApplication.applicationContext.getBean(kickboard.external.PaymentService.class)
-            .payTicket(this.getTicketId(), ticketAmount);
-        
-        if(result) {
-            TicketPurchased ticketPurchased = new TicketPurchased();
-            ticketPurchased.setTicketId(this.getTicketId());
-            ticketPurchased.setTicketStatus("ticketPurchased");
-            ticketPurchased.setTicketType(this.getTicketType());
-            ticketPurchased.setBuyerPhoneNum(this.getBuyerPhoneNum());
-
-            BeanUtils.copyProperties(this, ticketPurchased);
-            ticketPurchased.publishAfterCommit();
-        }
-    }
-```    
-
-3. 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인
-   (Payment 서비스 다운 후 티켓 구매)
-
-```    
-root@siege:/#  http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
-HTTP/1.1 500 
-Connection: close
-Content-Type: application/json;charset=UTF-8
-Date: Thu, 02 Sep 2021 11:36:43 GMT
-Transfer-Encoding: chunked
-
-{
-    "error": "Internal Server Error",
-    "message": "Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction",
-    "path": "/tickets",
-    "status": 500,
-    "timestamp": "2021-09-02T11:36:44.953+0000"
-}
-
-```
-
 ### DDD의 적용
 
 1. 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다. (예시는 ticket 마이크로 서비스 )
@@ -246,30 +182,69 @@ http GET ticket:8080/tickets/1
 ```
 ****
 
-### Correlation
+### 동기식 호출 (구현)
 
-PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 
-(이용권 구매와 킥보드 대여시 이용권 상태, 킥보드 상태 변경)
+분석단계에서의 조건 중 하나로 이용권 구매 (ticket) --> 이용권 결제 (payment) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로
+처리한다. 호출 프로토콜은 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient를 이용하여 호출한다.
 
-- 이용권 구매
- 
-![image](https://user-images.githubusercontent.com/87048759/131925744-9e62d805-5c6c-447f-a531-499e8e7075ed.png)
+1. 결제서비스를 호출하기 위해 FeignClient를 이용해 Service 대행 인터페이스 구현
 
-- 킥보드 등록
- 
-![image](https://user-images.githubusercontent.com/87048759/131925808-d6e12cb0-a7ee-41e7-89b6-2c27f5e15216.png)
+#### PaymentService.java
 
-- 킥보드 대여 (1번 킥보드 상태 Rented로 변경)
+```
+@FeignClient(name="payment", url="http://payment:8080")
+public interface PaymentService {
+    @RequestMapping(method= RequestMethod.GET, path="/payTicket")
+    public boolean payTicket(@RequestParam("ticketId") Long ticketId, 
+                             @RequestParam("ticketAmt") Long ticketAmt);
+}
+```
 
+2. 이용권을 받은 직후(@PostPersist) 결제 요청하도록 처리
 
+#### ticket.java
 
-- 킥보드 대여 (1번 이용권 상태 Used로 변경)
+```
+    @PostPersist
+    public void onPostPersist(){
+        Long ticketAmount = Long.decode(this.getTicketType() == "1"?"1000":"2000");
 
-- 티켓 환불
+        boolean result = TicketApplication.applicationContext.getBean(kickboard.external.PaymentService.class)
+            .payTicket(this.getTicketId(), ticketAmount);
+        
+        if(result) {
+            TicketPurchased ticketPurchased = new TicketPurchased();
+            ticketPurchased.setTicketId(this.getTicketId());
+            ticketPurchased.setTicketStatus("ticketPurchased");
+            ticketPurchased.setTicketType(this.getTicketType());
+            ticketPurchased.setBuyerPhoneNum(this.getBuyerPhoneNum());
 
-![image](https://user-images.githubusercontent.com/87048759/131926448-a2b289f6-987b-4147-a62e-94441de99e05.png)
+            BeanUtils.copyProperties(this, ticketPurchased);
+            ticketPurchased.publishAfterCommit();
+        }
+    }
+```    
 
+3. 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인
+   (Payment 서비스 다운 후 티켓 구매)
 
+```    
+root@siege:/#  http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
+HTTP/1.1 500 
+Connection: close
+Content-Type: application/json;charset=UTF-8
+Date: Thu, 02 Sep 2021 11:36:43 GMT
+Transfer-Encoding: chunked
+
+{
+    "error": "Internal Server Error",
+    "message": "Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction",
+    "path": "/tickets",
+    "status": 500,
+    "timestamp": "2021-09-02T11:36:44.953+0000"
+}
+
+```
 
 ### 비동기식 호출
 
@@ -311,6 +286,101 @@ PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기
 - 킥보드 상태 확인
 
 ![image](https://user-images.githubusercontent.com/87048759/131926693-042fb2b5-adee-450e-b040-80c4d1c6e863.png)
+
+
+### CQRS
+
+
+### Correlation
+
+PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기 위한 Correlation-key 구현을 이벤트 클래스 안의 변수로 전달받아 서비스간 연관 처리를 구현 
+(이용권 구매와 킥보드 대여시 이용권 상태, 킥보드 상태 변경)
+
+- 이용권 구매
+ 
+![image](https://user-images.githubusercontent.com/87048759/131925744-9e62d805-5c6c-447f-a531-499e8e7075ed.png)
+
+- 킥보드 등록
+ 
+![image](https://user-images.githubusercontent.com/87048759/131925808-d6e12cb0-a7ee-41e7-89b6-2c27f5e15216.png)
+
+- 킥보드 대여 (1번 킥보드 상태 Rented로 변경)
+
+
+
+- 킥보드 대여 (1번 이용권 상태 Used로 변경)
+
+- 티켓 환불
+
+![image](https://user-images.githubusercontent.com/87048759/131926448-a2b289f6-987b-4147-a62e-94441de99e05.png)
+
+
+### Deploy
+
+1. 서비스별로 deploy.yaml 파일을 생성하였다.
+
+#### kickboard-deploy.yaml
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kickboard
+  #navespace: kickboard
+  labels:
+    app: kickboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kickboard
+  template:
+    metadata:
+      labels:
+        app: kickboard
+    spec:
+      containers:
+        - name: kickboard
+          image: 052937454741.dkr.ecr.eu-central-1.amazonaws.com/user24-kickboard:latest.
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kickboard
+  labels:
+    app: kickboard
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: kickboard
+```
+
+2. 서비스별로 명령어를 통해 배포를 수행하였다.
+
+![image](https://user-images.githubusercontent.com/87048759/131934499-02bf2e85-807a-474b-9686-7f3883d3a9f6.png)
 
 
 ### 서킷브레이킹
