@@ -252,58 +252,24 @@ PolicyHandler에서 처리 시 어떤 건에 대한 처리인지를 구별하기
 (이용권 구매와 킥보드 대여시 이용권 상태, 킥보드 상태 변경)
 
 - 이용권 구매
+ 
 ![image](https://user-images.githubusercontent.com/87048759/131925744-9e62d805-5c6c-447f-a531-499e8e7075ed.png)
 
 - 킥보드 등록
+ 
 ![image](https://user-images.githubusercontent.com/87048759/131925808-d6e12cb0-a7ee-41e7-89b6-2c27f5e15216.png)
 
 - 킥보드 대여 (1번 킥보드 상태 Rented로 변경)
 
-```
-root@siege:/# http GET kickboard:8080/kicks/1
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 14:51:32 GMT
-Transfer-Encoding: chunked
 
-{
-    "_links": {
-        "kick": {
-            "href": "http://kickboard:8080/kicks/1"
-        },
-        "self": {
-            "href": "http://kickboard:8080/kicks/1"
-        }
-    },
-    "kickStatus": "Rented",
-    "ticketId": 1,
-    "usingTime": 60
-}
-```
 
 - 킥보드 대여 (1번 이용권 상태 Used로 변경)
 
-```
-root@siege:/# http GET ticket:8080/tickets/1
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 14:52:32 GMT
-Transfer-Encoding: chunked
+- 티켓 환불
 
-{
-    "_links": {
-        "self": {
-            "href": "http://ticket:8080/tickets/1"
-        },
-        "ticket": {
-            "href": "http://ticket:8080/tickets/1"
-        }
-    },
-    "buyerPhoneNum": null,
-    "ticketStatus": "ticketUsed",
-    "ticketType": "1"
-}
-```
+![image](https://user-images.githubusercontent.com/87048759/131926448-a2b289f6-987b-4147-a62e-94441de99e05.png)
+
+
 
 ### 비동기식 호출
 
@@ -329,91 +295,23 @@ Transfer-Encoding: chunked
    이용권 구매와 킥보드 대여는 문제 없이 사용할 수 있다.
 
 - message 서비스 미동작
-```
-root@labs--1860204849:/home/project/kickboard/kickboard# kubectl get pods
-NAME                         READY   STATUS             RESTARTS   AGE
-gateway-7cf6fcfb7b-42gfx     1/1     Running            0          177m
-kickboard-66fd9859b8-pj99f   1/1     Running            0          63m
-message-bbf6bcd66-jv4vh      0/1     CrashLoopBackOff   82         7h12m
-my-kafka-0                   1/1     Running            1          9h
-my-kafka-zookeeper-0         1/1     Running            0          9h
-payment-6b45b46848-ztcrk     1/1     Running            0          65m
-siege                        1/1     Running            0          9h
-ticket-c84f858f4-rj2jg       1/1     Running            0          66m
-viewpage-66bc678b84-fn8gr    1/1     Running            0          3h
-```
+
+![image](https://user-images.githubusercontent.com/87048759/131926566-d221c0ee-e99b-459e-9e19-b4f7de21c23e.png)
 
 - 이용권 구매
 
-```
-root@siege:/# http ticket:8080/tickets ticketType=1 ticketStatus="ReadyForPay"
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 15:25:23 GMT
-Transfer-Encoding: chunked
-
-{
-    "_links": {
-        "self": {
-            "href": "http://ticket:8080/tickets/2"
-        },
-        "ticket": {
-            "href": "http://ticket:8080/tickets/2"
-        }
-    },
-    "buyerPhoneNum": null,
-    "ticketStatus": "ticketAvailable",
-    "ticketType": "1"
-}
-```
+![image](https://user-images.githubusercontent.com/87048759/131926633-43e17a98-afed-4e73-af89-291cfc04583b.png)
 
 - 킥보드 대여
 
-```
-root@siege:/# http PATCH kickboard:8080/kicks/2 ticketId="2" usingTime="60"
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 15:29:32 GMT
-Transfer-Encoding: chunked
+- 이용권 상태 확인
 
-{
-    "_links": {
-        "kick": {
-            "href": "http://kickboard:8080/kicks/2"
-        },
-        "self": {
-            "href": "http://kickboard:8080/kicks/2"
-        }
-    },
-    "kickStatus": "Rented",
-    "ticketId": 2,
-    "usingTime": 60
-}
-```
+![image](https://user-images.githubusercontent.com/87048759/131926773-a99128de-0879-40f9-a2fd-304a641bef7a.png)
 
 - 킥보드 상태 확인
 
-```
-root@siege:/# http GET kickboard:8080/kicks/2
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Thu, 02 Sep 2021 15:31:38 GMT
-Transfer-Encoding: chunked
+![image](https://user-images.githubusercontent.com/87048759/131926693-042fb2b5-adee-450e-b040-80c4d1c6e863.png)
 
-{
-    "_links": {
-        "kick": {
-            "href": "http://kickboard:8080/kicks/2"
-        },
-        "self": {
-            "href": "http://kickboard:8080/kicks/2"
-        }
-    },
-    "kickStatus": "Rented",
-    "ticketId": 2,
-    "usingTime": 60
-}
-```
 
 ### 서킷브레이킹
 
@@ -424,18 +322,9 @@ Transfer-Encoding: chunked
 3. Hystrix 설정 : thread에서 처리 시간이 600 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
 
 #### application.yml
-```
-server:
-  port: 8080
 
----
+![image](https://user-images.githubusercontent.com/87048759/131926981-56a7e405-5950-4305-ae98-95c7829603f3.png)
 
-hystrix:
-  command:
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 600
-
-```
 
 4. 피호출 서비스 부하처리
 
@@ -464,63 +353,33 @@ hystrix:
 ```
 
 4. 피호출 서비스 부하처리
-root@labs--1860204849:/home/project/kickboard/ticket# siege -v -c100 -t30S -r10 --content-type "application/json" 'http://ticket:8080/tickets POST {"ticketType":1, "ticketStatus":"ReadyToPay"}'
+```
+root@labs--1860204849:/home/project/kickboard/ticket# siege -v -c50 -t30S -r10 --content-type "application/json" 'http://ticket:8080/tickets POST {"ticketType":1, "ticketStatus":"ReadyToPay"}'
+```
+
+
 
 ### 오토스케일아웃
 
 1. replica를 동적으로 늘려 주도록 HPA를 설정한다. CPU 사용량이 20%를 넘으면 replica를 10개까지 늘려준다.
 
-```
-root@labs--1860204849:/home/project/kickboard/ticket# kubectl autoscale deployment ticket --cpu-percent=20 --min=1 --max=10
-horizontalpodautoscaler.autoscaling/ticket autoscaled
-root@labs--1860204849:/home/project/kickboard/ticket# kubectl autoscale deployment payment --cpu-percent=20 --min=1 --max=10
-horizontalpodautoscaler.autoscaling/payment autoscaled
-root@labs--1860204849:/home/project/kickboard/ticket# kubectl get all
-NAME                             READY   STATUS             RESTARTS   AGE
-pod/gateway-7cf6fcfb7b-42gfx     1/1     Running            0          3h33m
-pod/kickboard-66fd9859b8-pj99f   1/1     Running            0          99m
-pod/my-kafka-0                   1/1     Running            1          10h
-pod/my-kafka-zookeeper-0         1/1     Running            0          10h
-pod/payment-6b45b46848-ztcrk     1/1     Running            0          100m
-pod/siege                        1/1     Running            0          9h
-pod/ticket-c84f858f4-rj2jg       1/1     Running            0          102m
-pod/viewpage-66bc678b84-fn8gr    1/1     Running            0          3h36m
+![image](https://user-images.githubusercontent.com/87048759/131927915-925207d2-76e5-4d7d-92cd-3c078d95828c.png)
 
-.......
+![image](https://user-images.githubusercontent.com/87048759/131928401-918101ac-2b80-4e0c-8546-583dd1e94a19.png)
 
-NAME                                          REFERENCE            TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/payment   Deployment/payment   <unknown>/20%   1         10        0          11s
-horizontalpodautoscaler.autoscaling/ticket    Deployment/ticket    <unknown>/20%   1         10        1          70s
-```
+2. 부하 테스트 진행 전 terminal을 추가하여 오토스케일링 현황을 모니터링 한다. (watch kubectl get pod)
+
+![image](https://user-images.githubusercontent.com/87048759/131928045-9e90e55f-aa3d-4e75-a839-40a1afe32c62.png)
 
 2. 부하 테스트 진행
 
 ```
-HTTP/1.1 200     0.03 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.03 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.04 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.03 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.08 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.02 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.02 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.01 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.04 secs:     349 bytes ==> GET  /tickets
-HTTP/1.1 200     0.04 secs:     349 bytes ==> GET  /tickets
-
-Lifting the server siege...
-Transactions:                  11000 hits
-Availability:                 100.00 %
-Elapsed time:                  29.51 secs
-Data transferred:               3.66 MB
-Response time:                  0.08 secs
-Transaction rate:             372.76 trans/sec
-Throughput:                     0.12 MB/sec
-Concurrency:                   29.80
-Successful transactions:       11000
-Failed transactions:               0
-Longest transaction:            0.57
-Shortest transaction:           0.00
+siege -v -c100 -t30S -r10 --content-type "application/json" 'http://ticket:8080/tickets POST {"ticketType":1, "ticketStatus":"ReadyToPay"}'
 ```
+
+![image](https://user-images.githubusercontent.com/87048759/131928656-da17fab8-5487-41f3-86fd-64288482fe52.png)
+
+
 
 3. HPA 삭제
 
@@ -530,5 +389,23 @@ horizontalpodautoscaler.autoscaling "payment" deleted
 horizontalpodautoscaler.autoscaling "ticket" deleted
 ```
 
-## 운영
+## 동기식 호출 (운영)
+
+동기식 호출인 관계로 결제 시스템 장애 시 서비스를 처리할 수 없다.
+
+1. 결제 서비스를 임시로 삭제한다.
+
+![image](https://user-images.githubusercontent.com/87048759/131929840-f0fbe530-d2f2-4893-8ebd-4822dc08a8b4.png)
+
+2. 이용권 구매를 진행한다.
+
+![image](https://user-images.githubusercontent.com/87048759/131929888-80a31c25-66ef-4b54-8065-2497a3931c94.png)
+
+3. 결제 서비스를 재기동 한다.
+
+![image](https://user-images.githubusercontent.com/87048759/131929967-956224db-af33-4a2a-a7ad-2722f89a60e3.png)
+
+4. 이용권 구매를 다시 진행한다.
+
+![image](https://user-images.githubusercontent.com/87048759/131931093-96640cde-fca4-4182-8055-72bcd90c0ed3.png)
 
